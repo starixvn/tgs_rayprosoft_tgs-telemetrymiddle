@@ -39,9 +39,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 	var excludeExtensions = new[] { "html", "ico", "png", "jpg" };
 	_ = builder.Services
-		.AddGrpcHealthChecks(options => options.Services.Map(
-			"",
-			ctx => ctx.Tags.Contains("public")))
+		.AddGrpcHealthChecks()
+		.AddCheck("grpc", () => HealthCheckResult.Healthy())
 		.Services
 		.AddOpenTelemetry()
 		.WithTracing(traceBuilder => traceBuilder
