@@ -21,11 +21,15 @@ build-code:
 
 push-docker-image:
   extends: .push-docker-image-template
+  needs:
+    - build-code
   script:
     - push_docker "Tgs.TelemetryMiddle" $ImageName $Tag
 
 push-k8s-template:
   extends: .push-k8s-template
+  needs:
+    - build-code
   script:
     - push_k8s_template "telemetry" $ImageName $Tag
 
