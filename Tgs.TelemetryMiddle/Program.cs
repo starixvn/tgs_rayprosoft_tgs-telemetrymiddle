@@ -1,4 +1,5 @@
 ﻿using FluentdForward.OpenTelemetry.MessagePack;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -38,7 +39,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 	var excludeExtensions = new[] { "html", "ico", "png", "jpg" };
 	_ = builder.Services
-		.AddGrpcHealthChecks()
+		.AddGrpcHealthChecks(options => options.Services.Map(
+			"",
+			ctx => ctx.Tags.Contains("public")))
 		.Services
 		.AddOpenTelemetry()
 		.WithTracing(traceBuilder => traceBuilder
