@@ -38,7 +38,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 	var excludeExtensions = new[] { "html", "ico", "png", "jpg" };
 	_ = builder.Services
-		.AddHealthChecks()
+		.AddGrpcHealthChecks()
 		.Services
 		.AddOpenTelemetry()
 		.WithTracing(traceBuilder => traceBuilder
@@ -56,7 +56,7 @@ var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 {
 	app.MapGrpcService<GrpcLogsService>();
-	app.MapHealthChecks("/healthz");
+	app.MapGrpcHealthChecksService();
 }
 
 app.Run();

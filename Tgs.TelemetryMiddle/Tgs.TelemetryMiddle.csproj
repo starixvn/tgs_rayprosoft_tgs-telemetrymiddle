@@ -13,6 +13,7 @@
     <PackageReference Include="AsyncMethodNameFixer" Version="2.3.0" />
     <PackageReference Include="FluentdForward.OpenTelemetry.MessagePack" Version="0.3.8" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.62.0" />
+    <PackageReference Include="Grpc.AspNetCore.HealthChecks" Version="2.62.0" />
     <PackageReference Include="MessagePack" Version="2.5.140" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.6" />
     <PackageReference Include="OpenTelemetry.Api" Version="1.8.1" />
