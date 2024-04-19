@@ -15,7 +15,6 @@ public class FluentdClient : IDisposable
 			StandardResolver.Instance));
 
 	private readonly TcpClient _tcp;
-	private readonly FluentdOptions _setting;
 	private bool _disposed;
 	private NetworkStream _stream = default!;
 
@@ -23,9 +22,8 @@ public class FluentdClient : IDisposable
 	/// Create a new <see cref="FluentdClient"/> instance.
 	/// </summary>
 	/// <param name="setting">The setting for connecting to fluentd server.</param>
-	public FluentdClient(FluentdOptions setting)
+	public FluentdClient()
 	{
-		_setting = setting ?? throw new ArgumentNullException(nameof(setting));
 		_tcp = new TcpClient
 		{
 			NoDelay = true
@@ -43,12 +41,9 @@ public class FluentdClient : IDisposable
 	/// <inheritdoc cref="IFluentdClient.ConnectAsync" />
 	public async Task ConnectAsync(CancellationToken cancellationToken)
 	{
-		if (_setting.Timeout.HasValue)
-			_tcp.SendTimeout = _setting.Timeout.Value;
-
 		await _tcp.ConnectAsync(
-			_setting.Host,
-			_setting.Port,
+			"localhost",
+			24224,
 			cancellationToken).ConfigureAwait(false);
 
 		_ = cancellationToken.Register(_tcp.Close);
@@ -96,7 +91,7 @@ public class FluentdClient : IDisposable
 			Body = ReadAsPayloadBody(batch)
 		};
 
-		return global::MessagePack.MessagePackSerializer.Serialize(payload, _PackSerializerOptions);
+		return MessagePackSerializer.Serialize(payload, _PackSerializerOptions);
 	}
 
 	private static IEnumerable<ArrayPayloadBody<FluentdLog>> ReadAsPayloadBody(Batch<FluentdLog> batch)

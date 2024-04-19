@@ -1,6 +1,4 @@
-﻿using FluentdForward.OpenTelemetry.Exporter.Logs;
-using FluentdForward.OpenTelemetry.MessagePack;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using FluentdForward.OpenTelemetry.MessagePack;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -9,14 +7,14 @@ using Valhalla.Messages;
 
 var builder = WebApplication.CreateBuilder(args);
 {
-	builder.Logging
+	_ = builder.Logging
 		.AddOpenTelemetry(options =>
 		{
 			options.IncludeFormattedMessage = true;
 			options.ParseStateValues = true;
 			_ = options.AddFluentdForwardExporter(fluentOptions =>
 			{
-				var nodeIp = builder.Configuration.GetValue<string>("NODE_IP")!;
+				var nodeIp = builder.Configuration.GetValue<string>("Telemetry:LogHost")!;
 				fluentOptions.Host = nodeIp;
 				fluentOptions.Tag = builder.Configuration.GetValue<string>("OTEL_SERVICE_NAME")!;
 				fluentOptions.UseMessagePack(LogRecordFormatterResolver.GetResolverInstanceWithExtendInfo(
@@ -35,10 +33,7 @@ var builder = WebApplication.CreateBuilder(args);
 		.AddKeyedSingleton(
 			"LogStream",
 			(sp, _) => sp.GetRequiredService<IEventBus>().GetEventPublisher<FluentdLogsBatch>("LogStream")!)
-		.AddSingleton(sp => new FluentdClient(new FluentdOptions
-		{
-			Tag = "Unknown"
-		}))
+		.AddSingleton<FluentdClient>()
 		.AddHostedService<FluentdLogBackground>();
 
 	var excludeExtensions = new[] { "html", "ico", "png", "jpg" };
@@ -63,7 +58,5 @@ var app = builder.Build();
 	app.MapGrpcService<GrpcLogsService>();
 	app.MapHealthChecks("/healthz");
 }
-
-app.MapGet("/", () => "Hello World!");
 
 app.Run();

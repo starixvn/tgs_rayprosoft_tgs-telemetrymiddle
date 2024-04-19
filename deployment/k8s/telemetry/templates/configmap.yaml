@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configmap-{{ include "telemetry.fullname" . }}
+data:
+  fluent-bit.yaml: |
+    service:
+      flush: 1
+      log_level: warn
+      http_server: on
+    pipeline:
+      inputs:
+        - name: forward
+      filters:
+        - name: modify
+          match: '*'
+          Condition:
+            - Key_exists Body
+            - Key_does_not_exist FormattedMessage
+          Rename: Body FormattedMessage
+      outputs:
+        - name: forward
+          match: *
+          Host: fluent-bit.logging
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+
+    processors:
+      batch:
+
+    exporters:
+      otlp:
+        endpoint: "$NODE_IP:4317"
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: "tgs"
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces: 
+          receivers: [otlp]
+          processors:
+            - batch
+          exporters: [otlp]
+        metrics:
+          receivers: [otlp]
+          exporters: [prometheus]

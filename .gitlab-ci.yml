@@ -1,0 +1,85 @@
+include:
+  - project: rayprosoft/tgs-ci-scripts
+    ref: main
+    file: GitLab/Templates/gitlab-job-templates.yml
+
+variables:
+  ImageName: pgtgs/telemetry-middle
+  TgsSettingKey: telemetry-middle
+  BuildCacheKey: Tgs.TelemetryMiddle.$CI_PIPELINE_IID
+
+stages:
+  - build
+  - test
+  - publish
+  - deploy-dev
+  - deploy-staging
+  - deploy-prod
+
+build-code:
+  extends: .build-code-template
+
+push-docker-image:
+  extends: .push-docker-image-template
+  script:
+    - push_docker "Tgs.TelemetryMiddle" $ImageName $Tag
+
+push-k8s-template:
+  extends: .push-k8s-template
+  script:
+    - push_k8s_template "telemetry" $ImageName $Tag
+
+deploy-dev:
+  extends: .deploy-template
+  variables:
+    namespace: dev
+    kube_config: KubeConfig_Raypro_dev
+  environment:
+    name: dev
+  stage: deploy-dev
+  needs:
+    - push-docker-image
+    - job: push-k8s-template
+      artifacts: true
+  only:
+    - main
+  script:
+    - deploy_k8s $TgsSettingKey "telemetry" $namespace
+  when: on_success
+
+deploy-staging:
+  extends: .deploy-template
+  variables:
+    namespace: staging
+    kube_config: KubeConfig_Raypro_staging
+  environment:
+    name: staging
+  stage: deploy-staging
+  needs:
+    - deploy-dev
+    - job: push-k8s-template
+      artifacts: true
+  only:
+    - main
+  when: manual
+  script:
+    - deploy_k8s $TgsSettingKey "telemetry" $namespace
+
+deploy-prod:
+  extends: .deploy-template
+  variables:
+    namespace: prod
+    kube_config: KubeConfig_Raypro_prod
+  environment:
+    name: prod
+  stage: deploy-prod
+  needs:
+    - deploy-staging
+    - job: push-k8s-template
+      artifacts: true
+  only:
+    - main
+  when: manual
+  script:
+    - deploy_k8s $TgsSettingKey "telemetry" $namespace
+

@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "telemetry.fullname" . }}
+  labels:
+    {{- include "telemetry.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "telemetry.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "telemetry.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "telemetry.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: Telemetry-Middle({{ .Release.Namespace }})
+            - name: Telemetry__LogHost
+              value: fluent-bit.logging
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          startupProbe:
+            {{- toYaml .Values.startupProbe | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        - name: fluentbit
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: cr.fluentbit.io/fluent/fluent-bit:3.0.2
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --workdir=/fluent-bit/etc
+            - --config=/fluent-bit/etc/conf/fluent-bit.yaml
+          command:
+            - /fluent-bit/bin/fluent-bit
+          ports:
+            - containerPort: 2020
+              name: http
+              protocol: TCP
+            - containerPort: 24224
+              name: forward
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /fluent-bit/etc/conf/fluent-bit.yaml
+              name: appsettings
+              readOnly: true
+              subPath: fluent-bit.yaml
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+        - name: monitor
+          image: otel/opentelemetry-collector:0.98.0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --config=/etc/otel/config.yaml
+          env:
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          ports:
+            - name: metrics
+              containerPort: 8889
+              protocol: TCP
+            - name: health
+              containerPort: 13133
+              protocol: TCP
+            - name: otlp
+              containerPort: 4317
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /etc/otel/config.yaml
+              name: appsettings
+              readOnly: true
+              subPath: otel-collector-config.yaml
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            periodSeconds: 5
+      volumes:
+        - name: appsettings
+          configMap:
+            name: configmap-{{ include "telemetry.fullname" . }}
+      {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
