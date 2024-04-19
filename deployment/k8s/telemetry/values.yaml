@@ -81,14 +81,12 @@ resources:
   #   memory: 128Mi
 
 livenessProbe:
-  httpGet:
-    path: /healthz
+  grpc:
     port: http
   periodSeconds: 5
 
 startupProbe:
-  httpGet:
-    path: /healthz
+  grpc:
     port: http
   periodSeconds: 2
   failureThreshold: 30
