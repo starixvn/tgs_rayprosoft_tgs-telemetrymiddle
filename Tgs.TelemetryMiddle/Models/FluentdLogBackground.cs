@@ -21,6 +21,7 @@ public class FluentdLogBackground(
 			Delay = TimeSpan.FromSeconds(1),
 			UseJitter = true,
 			MaxDelay = TimeSpan.FromSeconds(5),
+			MaxRetryAttempts = int.MaxValue,
 			OnRetry = arg =>
 			{
 				_ = arg.Context.Properties.TryGetValue(_LoggerKey, out var sysLog);
