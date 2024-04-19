@@ -82,12 +82,12 @@ resources:
 
 livenessProbe:
   grpc:
-    port: http
+    port: 8080
   periodSeconds: 5
 
 startupProbe:
   grpc:
-    port: http
+    port: 8080
   periodSeconds: 2
   failureThreshold: 30
 
