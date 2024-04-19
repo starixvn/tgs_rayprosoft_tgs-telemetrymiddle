@@ -33,7 +33,7 @@ data:
 
     exporters:
       otlp:
-        endpoint: "$NODE_IP:4317"
+        endpoint: "otel-svc.observability:4317"
         tls:
           insecure: true
       prometheus:

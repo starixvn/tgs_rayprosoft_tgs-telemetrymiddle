@@ -67,7 +67,7 @@ spec:
             - /fluent-bit/bin/fluent-bit
           ports:
             - containerPort: 2020
-              name: http
+              name: fluent-server
               protocol: TCP
             - containerPort: 24224
               name: forward
@@ -81,7 +81,7 @@ spec:
             failureThreshold: 3
             httpGet:
               path: /
-              port: http
+              port: fluent-server
               scheme: HTTP
             periodSeconds: 10
             successThreshold: 1
@@ -100,7 +100,7 @@ spec:
             - name: metrics
               containerPort: 8889
               protocol: TCP
-            - name: health
+            - name: monitor-health
               containerPort: 13133
               protocol: TCP
             - name: otlp
@@ -114,13 +114,13 @@ spec:
           startupProbe:
             httpGet:
               path: /healthz
-              port: health
+              port: monitor-health
             periodSeconds: 2
             failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /healthz
-              port: health
+              port: monitor-health
             periodSeconds: 5
       volumes:
         - name: appsettings
