@@ -20,7 +20,7 @@ data:
           Rename: Body FormattedMessage
       outputs:
         - name: forward
-          match: *
+          match: '*'
           Host: fluent-bit.logging
   otel-collector-config.yaml: |
     receivers:
